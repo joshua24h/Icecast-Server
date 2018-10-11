@@ -13,7 +13,7 @@
 #ifndef __SLAVE_H__
 #define __SLAVE_H__
 
-#include "common/thread/thread.h"
+#include <permafrost/thread.h>
 #include "icecasttypes.h"
 #include "cfgfile.h"
 
