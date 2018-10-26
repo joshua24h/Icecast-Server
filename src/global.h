@@ -20,8 +20,8 @@
 
 #define ICECAST_VERSION_STRING "Icecast " PACKAGE_VERSION
 
-#include <permafrost/thread.h>
-#include <permafrost/avl.h>
+#include <igloo/thread.h>
+#include <igloo/avl.h>
 #include "icecasttypes.h"
 
 typedef struct ice_global_tag
@@ -34,7 +34,7 @@ typedef struct ice_global_tag
     int clients;
     int schedule_config_reread;
 
-    avl_tree *source_tree;
+    igloo_avl_tree *source_tree;
     /* for locally defined relays */
     relay_t *relays;
     /* relays retrieved from master */
@@ -42,7 +42,7 @@ typedef struct ice_global_tag
 
     module_container_t *modulecontainer;
 
-    cond_t shutdown_cond;
+    igloo_cond_t shutdown_cond;
 } ice_global_t;
 
 extern ice_global_t global;

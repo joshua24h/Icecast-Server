@@ -26,9 +26,9 @@
 
 #include <libxml/tree.h>
 
-#include <permafrost/thread.h>
-#include <permafrost/avl.h>
-#include <permafrost/httpp.h>
+#include <igloo/thread.h>
+#include <igloo/avl.h>
+#include <igloo/httpp.h>
 
 #include "global.h"
 #include "refobject.h"
@@ -71,7 +71,7 @@ static inline void client_send_500(client_t *client, const char *message);
  * client_t is returned just in case a message needs to be returned. Should
  * be called with global lock held.
  */
-int client_create(client_t **c_ptr, connection_t *con, http_parser_t *parser)
+int client_create(client_t **c_ptr, connection_t *con, igloo_http_parser_t *parser)
 {
     ice_config_t    *config;
     client_t        *client = (client_t *) calloc(1, sizeof(client_t));
@@ -123,7 +123,7 @@ void client_complete(client_t *client)
     }
 
     if (!have) {
-        header = httpp_getvar(client->parser, "transfer-encoding");
+        header = igloo_httpp_getvar(client->parser, "transfer-encoding");
         if (header) {
             if (strcasecmp(header, "identity") != 0) {
                 client->request_body_length = -1; /* streaming */
@@ -133,7 +133,7 @@ void client_complete(client_t *client)
     }
 
     if (!have) {
-        header = httpp_getvar(client->parser, "content-length");
+        header = igloo_httpp_getvar(client->parser, "content-length");
         if (header) {
             if (sscanf(header, "%llu", &scannumber) == 1) {
                 client->request_body_length = scannumber;
@@ -238,7 +238,7 @@ void client_destroy(client_t *client)
     if (client->parser)
         httpp_destroy(client->parser);
     if (client->encoding)
-        httpp_encoding_release(client->encoding);
+        igloo_httpp_encoding_release(client->encoding);
 
     global_lock();
     global.clients--;
@@ -287,7 +287,7 @@ int client_read_bytes(client_t *client, void *buf, unsigned len)
     }
 
     if (client->encoding) {
-        bytes = httpp_encoding_read(client->encoding, buf, len, reader, userdata);
+        bytes = igloo_httpp_encoding_read(client->encoding, buf, len, reader, userdata);
     } else {
         bytes = reader(userdata, buf, len);
     }
@@ -702,7 +702,7 @@ admin_format_t client_get_admin_format_by_content_negotiation(client_t *client)
     if (!client || !client->parser)
         return CLIENT_DEFAULT_ADMIN_FORMAT;
 
-    pref = util_http_select_best(httpp_getvar(client->parser, "accept"), "text/xml", "text/html", "text/plain", (const char*)NULL);
+    pref = util_http_select_best(igloo_httpp_getvar(client->parser, "accept"), "text/xml", "text/html", "text/plain", (const char*)NULL);
 
     if (strcmp(pref, "text/xml") == 0) {
         return ADMIN_FORMAT_RAW;
@@ -795,7 +795,7 @@ int client_body_eof(client_t *client)
         ret = 1;
     } else if (client->encoding) {
         ICECAST_LOG_DEBUG("Looking for body EOF with encoding (client=%p)", client);
-        ret = httpp_encoding_eof(client->encoding, (int(*)(void*))client_eof, client);
+        ret = igloo_httpp_encoding_eof(client->encoding, (int(*)(void*))client_eof, client);
     } else {
         ICECAST_LOG_DEBUG("Looking for body EOF without encoding (client=%p)", client);
         ret = client_eof(client);
@@ -939,7 +939,7 @@ ssize_t client_get_baseurl(client_t *client, listensocket_t *listensocket, char 
         suffix1 = "";
 
     if (client) {
-        host = httpp_getvar(client->parser, "host");
+        host = igloo_httpp_getvar(client->parser, "host");
 
         /* at least a couple of players (fb2k/winamp) are reported to send a
          * host header but without the port number. So if we are missing the
