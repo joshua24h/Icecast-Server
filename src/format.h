@@ -25,7 +25,7 @@
 #include "refbuf.h"
 #include "cfgfile.h"
 
-#include <permafrost/httpp.h>
+#include <igloo/httpp.h>
 
 typedef enum _format_type_tag
 {
