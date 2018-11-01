@@ -220,7 +220,7 @@ void yp_recheck_config (ice_config_t *config)
     struct yp_server *server;
 
     ICECAST_LOG_DEBUG("Updating YP configuration");
-    thread_rwlock_rlock (&yp_lock);
+    igloo_thread_rwlock_rlock (&yp_lock);
 
     server = (struct yp_server *)active_yps;
     while (server)
@@ -270,21 +270,21 @@ void yp_recheck_config (ice_config_t *config)
             server->remove = 0;
         }
     }
-    thread_rwlock_unlock (&yp_lock);
-    thread_rwlock_wlock(&yp_lock);
+    igloo_thread_rwlock_unlock (&yp_lock);
+    igloo_thread_rwlock_wlock(&yp_lock);
     yp_update = 1;
-    thread_rwlock_unlock(&yp_lock);
+    igloo_thread_rwlock_unlock(&yp_lock);
 }
 
 
 void yp_initialize(void)
 {
     ice_config_t *config = config_get_config();
-    thread_rwlock_create (&yp_lock);
-    thread_mutex_create (&yp_pending_lock);
+    igloo_thread_rwlock_create (&yp_lock);
+    igloo_thread_mutex_create (&yp_pending_lock);
     yp_recheck_config (config);
     config_release_config ();
-    yp_thread = thread_create("YP Touch Thread", yp_update_thread,
+    yp_thread = igloo_thread_create("YP Touch Thread", yp_update_thread,
                             (void *)NULL, igloo_THREAD_ATTACHED);
 }
 
@@ -734,7 +734,7 @@ static void *yp_update_thread(void *arg)
         igloo_thread_sleep (200000);
 
         /* do the YP communication */
-        thread_rwlock_rlock (&yp_lock);
+        igloo_thread_rwlock_rlock (&yp_lock);
         server = (struct yp_server *)active_yps;
         while (server)
         {
@@ -745,8 +745,8 @@ static void *yp_update_thread(void *arg)
         /* update the local YP structure */
         if (yp_update)
         {
-            thread_rwlock_unlock(&yp_lock);
-            thread_rwlock_wlock (&yp_lock);
+            igloo_thread_rwlock_unlock(&yp_lock);
+            igloo_thread_rwlock_wlock (&yp_lock);
             check_servers ();
             server = (struct yp_server *)active_yps;
             while (server)
@@ -759,7 +759,7 @@ static void *yp_update_thread(void *arg)
             yp_update = 0;
         }
         running = yp_running;
-        thread_rwlock_unlock(&yp_lock);
+        igloo_thread_rwlock_unlock(&yp_lock);
     }
     igloo_thread_rwlock_destroy (&yp_lock);
     igloo_thread_mutex_destroy (&yp_pending_lock);
@@ -886,10 +886,10 @@ void yp_add (const char *mount)
     struct yp_server *server;
 
     /* make sure YP thread is not modifying the lists */
-    thread_rwlock_rlock (&yp_lock);
+    igloo_thread_rwlock_rlock (&yp_lock);
 
     /* make sure we don't race against another yp_add */
-    thread_mutex_lock (&yp_pending_lock);
+    igloo_thread_mutex_lock (&yp_pending_lock);
     server = (struct yp_server *)active_yps;
     while (server)
     {
@@ -916,8 +916,8 @@ void yp_add (const char *mount)
             ICECAST_LOG_DEBUG("YP entry %s already exists", mount);
         server = server->next;
     }
-    thread_mutex_unlock (&yp_pending_lock);
-    thread_rwlock_unlock (&yp_lock);
+    igloo_thread_mutex_unlock (&yp_pending_lock);
+    igloo_thread_rwlock_unlock (&yp_lock);
 }
 
 
@@ -927,7 +927,7 @@ void yp_remove (const char *mount)
 {
     struct yp_server *server = (struct yp_server *)active_yps;
 
-    thread_rwlock_rlock (&yp_lock);
+    igloo_thread_rwlock_rlock (&yp_lock);
     while (server)
     {
         ypdata_t *list = server->mounts;
@@ -948,7 +948,7 @@ void yp_remove (const char *mount)
         }
         server = server->next;
     }
-    thread_rwlock_unlock (&yp_lock);
+    igloo_thread_rwlock_unlock (&yp_lock);
 }
 
 
@@ -959,7 +959,7 @@ void yp_touch (const char *mount)
     struct yp_server *server = (struct yp_server *)active_yps;
     ypdata_t *search_list = NULL;
 
-    thread_rwlock_rlock (&yp_lock);
+    igloo_thread_rwlock_rlock (&yp_lock);
     if (server)
         search_list = server->mounts;
 
@@ -982,16 +982,16 @@ void yp_touch (const char *mount)
         if (server)
             search_list = server->mounts;
     }
-    thread_rwlock_unlock (&yp_lock);
+    igloo_thread_rwlock_unlock (&yp_lock);
 }
 
 
 void yp_shutdown (void)
 {
-    thread_rwlock_wlock(&yp_lock);
+    igloo_thread_rwlock_wlock(&yp_lock);
     yp_running = 0;
     yp_update = 1;
-    thread_rwlock_unlock(&yp_lock);
+    igloo_thread_rwlock_unlock(&yp_lock);
 
     if (yp_thread)
         igloo_thread_join (yp_thread);
